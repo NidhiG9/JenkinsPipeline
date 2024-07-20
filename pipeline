@@ -1,0 +1,100 @@
+pipeline {
+    agent any
+    environment {
+        // The credentials ID used in the Jenkins credentials store
+        AWS_ACCESS_KEY_ID = credentials('aws')
+    }
+    options {
+        buildDiscarder logRotator(
+            artifactDaysToKeepStr: '',
+            artifactNumToKeepStr: '',
+            daysToKeepStr: '30',
+            numToKeepStr: '5'
+        )
+        timeout(time: 30, unit: 'MINUTES')
+    }
+    tools {
+        maven 'Maven'
+    }
+    stages {
+        stage('Checkout') {
+            steps {
+                checkout scmGit(
+                    branches: [[name: '*/main']],
+                    extensions: [],
+                    userRemoteConfigs: [[url: 'https://github.com/NidhiG9/Super-Project.git']]
+                )
+            }
+        }
+        stage('SonarQube Analysis') {
+            steps {
+                script {
+                    def mvn = tool 'Maven'
+                    withSonarQubeEnv('sonarqube-server') {
+                        sh "${mvn}/bin/mvn clean verify sonar:sonar -Dsonar.projectKey=jenkins-project -Dsonar.projectName=jenkins-project"
+                    }
+                }
+            }
+        }
+        stage('Maven Build') {
+            steps {
+                sh 'mvn package'
+            }
+        }
+        stage('Nexus Upload') {
+            steps {
+                nexusArtifactUploader(
+                    nexusVersion: 'nexus3',
+                    protocol: 'http',
+                    nexusUrl: '54.196.9.129:8081',
+                    groupId: 'addressbook',
+                    version: '2.0-SNAPSHOT',
+                    repository: 'maven-snapshot',
+                    credentialsId: 'nexus',
+                    artifacts: [
+                        [
+                            artifactId: 'jenkinsproject',
+                            classifier: '',
+                            file: 'target/addressbook-2.0.war',
+                            type: 'war'
+                        ]
+                    ]
+                )
+            }
+        }
+        stage('Docker Build') {
+            steps {
+                sh 'docker build -t jenkinsproject .'
+            }
+        }
+        stage('Docker Push') {
+            steps {
+                sh 'aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin 891377194600.dkr.ecr.us-east-1.amazonaws.com'
+                sh 'docker tag jenkinsproject:latest 891377194600.dkr.ecr.us-east-1.amazonaws.com/jenkinsproject:latest'
+                sh 'docker push 891377194600.dkr.ecr.us-east-1.amazonaws.com/jenkinsproject:latest'
+                sh 'docker tag 891377194600.dkr.ecr.us-east-1.amazonaws.com/jenkinsproject:latest 891377194600.dkr.ecr.us-east-1.amazonaws.com/jenkinsproject:${BUILD_NUMBER}'
+                sh 'docker push 891377194600.dkr.ecr.us-east-1.amazonaws.com/jenkinsproject:${BUILD_NUMBER}'
+            }
+        }
+        stage('Deployment') {
+            steps {
+                sh 'aws eks update-kubeconfig --region us-east-1 --name eks-cluster'
+                sh 'kubectl apply -f Application.yaml'
+            }
+        }
+    }
+    post {
+        always {
+            // One or more steps need to be included within each condition's block.
+            echo 'This will run regardless of the pipeline result.'
+        }
+        success {
+            // One or more steps need to be included within each condition's block.
+            echo 'This will run only if the pipeline succeeds.'
+        }
+        failure {
+            // One or more steps need to be included within each condition's block.
+            echo 'This will run only if the pipeline fails.'
+        }
+    }
+}
