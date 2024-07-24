@@ -1,0 +1,31 @@
+pipeline {
+    agent any
+    environment {
+        // The credentials ID used in the Jenkins credentials store
+        AWS_ACCESS_KEY_ID = credentials('aws')
+        AWS_SECRET_ACCESS_KEY = credentials('aws')
+    }
+    stages {
+        stage('checkout stage') {
+            steps {
+                checkout scmGit(branches: [[name: '*/main']], extensions: [], userRemoteConfigs: [[url: 'https://github.com/NidhiG9/Super-Project.git']])
+            }
+        }
+        stage('terraform init') {
+            steps {
+                sh 'terraform init'
+            }
+        }
+        stage('terraform plan') {
+            steps {
+                sh 'terraform plan'
+            }
+        }
+        stage('terraform apply') {
+            steps {
+                // Applying Terraform configuration
+                sh 'terraform apply -auto-approve'
+            }
+        }
+    }
+}
