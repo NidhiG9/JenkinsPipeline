@@ -22,7 +22,7 @@ pipeline {
                 checkout scmGit(
                     branches: [[name: '*/main']],
                     extensions: [],
-                    userRemoteConfigs: [[url: 'https://github.com/NidhiG9/Super-Project.git']]
+                    userRemoteConfigs: [[url: 'https://github.com/NidhiG9/addressbook-app.git']]
                 )
             }
         }
