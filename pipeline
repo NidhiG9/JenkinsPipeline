@@ -46,7 +46,7 @@ pipeline {
                 nexusArtifactUploader(
                     nexusVersion: 'nexus3',
                     protocol: 'http',
-                    nexusUrl: '54.196.9.129:8081',
+                    nexusUrl: '18.221.187.121:8081',
                     groupId: 'addressbook',
                     version: '2.0-SNAPSHOT',
                     repository: 'maven-snapshot',
@@ -69,11 +69,9 @@ pipeline {
         }
         stage('Docker Push') {
             steps {
-                sh 'aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin 891377194600.dkr.ecr.us-east-1.amazonaws.com'
-                sh 'docker tag jenkinsproject:latest 891377194600.dkr.ecr.us-east-1.amazonaws.com/jenkinsproject:latest'
-                sh 'docker push 891377194600.dkr.ecr.us-east-1.amazonaws.com/jenkinsproject:latest'
-                sh 'docker tag 891377194600.dkr.ecr.us-east-1.amazonaws.com/jenkinsproject:latest 891377194600.dkr.ecr.us-east-1.amazonaws.com/jenkinsproject:${BUILD_NUMBER}'
-                sh 'docker push 891377194600.dkr.ecr.us-east-1.amazonaws.com/jenkinsproject:${BUILD_NUMBER}'
+                sh 'aws ecr-public get-login-password --region us-east-1 | docker login --username AWS --password-stdin public.ecr.aws/f3g9m7r9'
+                sh 'docker tag jenkinsproject:latest public.ecr.aws/f3g9m7r9/jenkinsproject:latest'
+                sh 'docker push public.ecr.aws/f3g9m7r9/jenkinsproject:latest'
             }
         }
         stage('Deployment') {
