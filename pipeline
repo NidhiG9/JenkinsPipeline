@@ -19,11 +19,12 @@ pipeline {
     stages {
         stage('Checkout') {
             steps {
-                checkout scmGit(
-                    branches: [[name: '*/main']],
-                    extensions: [],
+                checkout([
+                    $class: 'GitSCM', 
+                    branches: [[name: '*/main']], 
+                    extensions: [], 
                     userRemoteConfigs: [[url: 'https://github.com/NidhiG9/addressbook-app.git']]
-                )
+                ])
             }
         }
         stage('SonarQube Analysis') {
@@ -83,15 +84,12 @@ pipeline {
     }
     post {
         always {
-            // One or more steps need to be included within each condition's block.
             echo 'This will run regardless of the pipeline result.'
         }
         success {
-            // One or more steps need to be included within each condition's block.
             echo 'This will run only if the pipeline succeeds.'
         }
         failure {
-            // One or more steps need to be included within each condition's block.
             echo 'This will run only if the pipeline fails.'
         }
     }
