@@ -1,0 +1,43 @@
+pipeline {
+    agent any
+
+    stages {
+        stage('Checkout') {
+            steps {
+                // Checkout code from GitHub repository
+                checkout([
+                    $class: 'GitSCM',
+                    branches: [[name: '*/main']],
+                    userRemoteConfigs: [[
+                        credentialsId: 'git', // Replace with your Git credentials ID
+                        url: 'https://github.com/Skilancersolar-com/testing.git'
+                    ]]
+                ])
+            }
+        }
+
+        stage('Deploy and Restart on EC2') {
+            steps {
+                // Use the SSH Agent plugin for secure access
+                sshagent(['ssh']) {
+                    sh '''
+                    # Copy the code to the EC2 instance
+                    scp -o StrictHostKeyChecking=no -r ${WORKSPACE}/* ubuntu@54.227.83.233:/home/ubuntu/testing
+
+                    # Restart the application using pm2 on the EC2 instance
+                    ssh -o StrictHostKeyChecking=no ubuntu@54.227.83.233 sudo /usr/local/bin/pm2 restart all || echo "PM2 restart failed"
+                    '''
+                }
+            }
+        }
+    }
+
+    post {
+        success {
+            echo 'Deployment successful!'
+        }
+        failure {
+            echo 'Deployment failed. Check the logs.'
+        }
+    }
+}
